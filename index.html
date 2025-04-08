@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Speech to Text</title>
+</head>
+<body>
+  <button onclick="startListening()">🎤 Speak</button>
+  <p id="status">Click to speak...</p>
+
+  <script>
+    function startListening() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) return alert("Not supported.");
+
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'fr-FR';
+      recognition.onstart = () => document.getElementById("status").innerText = "🎙️ Listening...";
+      recognition.onresult = (event) => {
+        const text = event.results[0][0].transcript;
+        window.parent.postMessage(text, "*"); // send to Wix iFrame
+        document.getElementById("status").innerText = "✅ " + text;
+      };
+      recognition.onerror = (e) => {
+        document.getElementById("status").innerText = "❌ Error: " + e.error;
+      };
+      recognition.start();
+    }
+  </script>
+</body>
+</html>
