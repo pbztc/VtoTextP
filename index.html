@@ -1,30 +1,147 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Speech to Text</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TrueCalling - Voice to Text</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #f9f9f9, #fff);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .container {
+      background: #fff;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+      width: 90%;
+      max-width: 500px;
+      text-align: center;
+    }
+
+    h1 {
+      color: #e6007e;
+      margin-bottom: 10px;
+    }
+
+    .status {
+      margin-top: 10px;
+      color: #444;
+      font-size: 14px;
+    }
+
+    #transcript {
+      margin-top: 20px;
+      font-size: 16px;
+      padding: 15px;
+      background: #f3f3f3;
+      border-radius: 8px;
+      min-height: 60px;
+    }
+
+    .buttons {
+      margin-top: 20px;
+    }
+
+    button {
+      background: #e6007e;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      margin: 0 8px;
+      font-size: 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    button:hover {
+      background: #c6006a;
+    }
+
+    .mic {
+      margin-top: 15px;
+      font-size: 28px;
+      color: #e6007e;
+      animation: pulse 1.5s infinite;
+      display: none;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 0.8; }
+      50% { transform: scale(1.2); opacity: 1; }
+      100% { transform: scale(1); opacity: 0.8; }
+    }
+  </style>
 </head>
 <body>
-  <button onclick="startListening()">🎤 Speak</button>
-  <p id="status">Click to speak...</p>
+  <div class="container">
+    <h1>🎤 Voice to Text</h1>
+    <p class="status" id="status">Cliquez sur Démarrer pour parler.</p>
+    <div id="transcript"></div>
+
+    <div class="buttons">
+      <button onclick="startListening()">Démarrer</button>
+      <button onclick="stopListening()">Arrêter</button>
+    </div>
+
+    <div class="mic" id="micAnim">🔴</div>
+  </div>
 
   <script>
+    let recognition;
+    let isListening = false;
+
     function startListening() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) return alert("Not supported.");
 
-      const recognition = new SpeechRecognition();
+      if (!SpeechRecognition) {
+        document.getElementById("status").innerText = "❌ Reconnaissance vocale non supportée sur ce navigateur.";
+        return;
+      }
+
+      recognition = new SpeechRecognition();
       recognition.lang = 'fr-FR';
-      recognition.onstart = () => document.getElementById("status").innerText = "🎙️ Listening...";
+      recognition.interimResults = true;
+
+      recognition.onstart = () => {
+        isListening = true;
+        document.getElementById("status").innerText = "🎙️ En écoute...";
+        document.getElementById("micAnim").style.display = "inline-block";
+      };
+
       recognition.onresult = (event) => {
-        const text = event.results[0][0].transcript;
-        window.parent.postMessage(text, "*"); // send to Wix iFrame
-        document.getElementById("status").innerText = "✅ " + text;
+        let transcript = '';
+        for (let i = 0; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript + ' ';
+        }
+        document.getElementById("transcript").innerText = transcript.trim();
       };
-      recognition.onerror = (e) => {
-        document.getElementById("status").innerText = "❌ Error: " + e.error;
+
+      recognition.onerror = (event) => {
+        document.getElementById("status").innerText = `❌ Erreur : ${event.error}`;
+        stopListening();
       };
+
+      recognition.onend = () => {
+        isListening = false;
+        document.getElementById("status").innerText = "🛑 Enregistrement terminé.";
+        document.getElementById("micAnim").style.display = "none";
+      };
+
       recognition.start();
+    }
+
+    function stopListening() {
+      if (isListening && recognition) {
+        recognition.stop();
+      }
     }
   </script>
 </body>
