@@ -2,106 +2,110 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>🎙️ Voice Input</title>
+  <title>🎙️ Assistant Vocal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <style>
     body {
-      font-family: "Poppins", sans-serif;
-      padding: 20px;
+      font-family: 'Poppins', sans-serif;
+      background: #fff;
+      padding: 30px;
       color: #333;
+      text-align: center;
     }
-    #textOutput {
-      margin-top: 20px;
-      padding: 12px;
-      background: #f7f7f7;
-      border-radius: 8px;
-      min-height: 60px;
-      border: 1px solid #ddd;
-      font-size: 16px;
+    h2 {
       color: #e6007e;
+      margin-bottom: 20px;
     }
     button {
       background-color: #e6007e;
-      color: white;
-      padding: 10px 20px;
+      color: #fff;
+      padding: 10px 24px;
       border: none;
+      border-radius: 40px;
       font-size: 16px;
-      border-radius: 6px;
+      font-weight: 600;
+      margin: 10px;
       cursor: pointer;
+      transition: background 0.3s ease;
     }
-    #endBtn {
-      background-color: #555;
-      margin-left: 10px;
+    button:hover {
+      background-color: #c0006b;
+    }
+    #textOutput {
+      margin-top: 30px;
+      padding: 20px;
+      background-color: #f9f9f9;
+      border: 1px solid #eee;
+      border-radius: 10px;
+      min-height: 100px;
+      font-size: 18px;
+      color: #e6007e;
+      white-space: pre-wrap;
+      box-shadow: 0 0 6px rgba(0, 0, 0, 0.05);
     }
   </style>
 </head>
 <body>
-  <h2>🎤 Parlez maintenant</h2>
-  <button onclick="startListening()">Démarrer</button>
-  <button id="endBtn" onclick="stopListening()">Fin de l'entretien</button>
+  <h2>🎤 Parlez-nous de vous</h2>
+  <button id="startBtn">🎙️ Commencer</button>
+  <button id="stopBtn">🛑 Terminer</button>
 
-  <div id="textOutput">📝 Texte prononcé ici...</div>
+  <div id="textOutput">📝 Votre texte apparaîtra ici...</div>
 
   <script>
     let recognition;
     let isListening = false;
     let fullText = "";
 
-    const textOutput = document.getElementById("textOutput");
+    const output = document.getElementById("textOutput");
+    const startBtn = document.getElementById("startBtn");
+    const stopBtn = document.getElementById("stopBtn");
 
-    function initSpeech() {
+    function initRecognition() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
-        textOutput.textContent = "❌ La reconnaissance vocale n'est pas supportée.";
+        output.textContent = "❌ Votre navigateur ne supporte pas la reconnaissance vocale.";
         return null;
       }
 
       const recog = new SpeechRecognition();
-      recog.lang = 'fr-FR';
+      recog.lang = "fr-FR";
       recog.interimResults = false;
-      recog.continuous = false; // Chrome doesn’t support true continuous, so we emulate it manually
-
-      recog.onstart = () => {
-        textOutput.textContent = "🎙️ Écoute en cours...";
-      };
+      recog.continuous = true;
 
       recog.onresult = (event) => {
-        const result = event.results[0][0].transcript;
+        const result = event.results[event.results.length - 1][0].transcript;
         fullText += result + " ";
-        textOutput.textContent = fullText.trim();
-        parent.postMessage(fullText.trim(), "*");
+        output.textContent = fullText.trim();
+        window.parent.postMessage(fullText.trim(), "*");
       };
 
-      recog.onerror = (e) => {
-        textOutput.textContent = "❌ Erreur : " + e.error;
-      };
-
-      recog.onend = () => {
-        if (isListening) {
-          setTimeout(() => recog.start(), 200); // restart after pause
-        } else {
-          textOutput.textContent += "\n🛑 Enregistrement terminé.";
-        }
+      recog.onerror = (event) => {
+        output.textContent = `❌ Erreur : ${event.error}`;
       };
 
       return recog;
     }
 
-    function startListening() {
+    startBtn.onclick = () => {
       if (!isListening) {
-        recognition = initSpeech();
+        recognition = initRecognition();
         if (recognition) {
           isListening = true;
+          fullText = "";
+          output.textContent = "🎙️ Écoute en cours...";
           recognition.start();
         }
       }
-    }
+    };
 
-    function stopListening() {
-      isListening = false;
-      if (recognition) {
+    stopBtn.onclick = () => {
+      if (recognition && isListening) {
         recognition.stop();
+        isListening = false;
+        output.textContent += "\n\n🛑 Enregistrement terminé.";
       }
-    }
+    };
   </script>
 </body>
 </html>
