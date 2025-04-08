@@ -1,146 +1,107 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>TrueCalling - Voice to Text</title>
+  <meta charset="UTF-8">
+  <title>TrueCalling Interview</title>
   <style>
     body {
-      font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(to right, #f9f9f9, #fff);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-    }
-
-    .container {
-      background: #fff;
-      border-radius: 12px;
+      font-family: Helvetica, sans-serif;
+      background-color: #fff;
+      color: #000;
       padding: 30px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-      width: 90%;
-      max-width: 500px;
       text-align: center;
     }
 
-    h1 {
-      color: #e6007e;
-      margin-bottom: 10px;
-    }
-
-    .status {
-      margin-top: 10px;
-      color: #444;
-      font-size: 14px;
-    }
-
-    #transcript {
-      margin-top: 20px;
-      font-size: 16px;
-      padding: 15px;
-      background: #f3f3f3;
-      border-radius: 8px;
-      min-height: 60px;
-    }
-
-    .buttons {
-      margin-top: 20px;
-    }
-
-    button {
-      background: #e6007e;
+    .btn {
+      background-color: #e6007e;
       color: white;
       border: none;
       padding: 12px 20px;
-      margin: 0 8px;
-      font-size: 14px;
-      border-radius: 8px;
+      font-size: 16px;
+      margin: 10px;
+      border-radius: 6px;
       cursor: pointer;
-      transition: background 0.2s ease;
+      transition: background-color 0.3s ease;
     }
 
-    button:hover {
-      background: #c6006a;
+    .btn:hover {
+      background-color: #cc006e;
     }
 
-    .mic {
-      margin-top: 15px;
-      font-size: 28px;
-      color: #e6007e;
-      animation: pulse 1.5s infinite;
-      display: none;
+    #status {
+      margin-top: 20px;
+      font-size: 16px;
+      color: #555;
     }
 
-    @keyframes pulse {
-      0% { transform: scale(1); opacity: 0.8; }
-      50% { transform: scale(1.2); opacity: 1; }
-      100% { transform: scale(1); opacity: 0.8; }
+    #result {
+      margin-top: 30px;
+      font-size: 18px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      background-color: #fafafa;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🎤 Voice to Text</h1>
-    <p class="status" id="status">Cliquez sur Démarrer pour parler.</p>
-    <div id="transcript"></div>
 
-    <div class="buttons">
-      <button onclick="startListening()">Démarrer</button>
-      <button onclick="stopListening()">Arrêter</button>
-    </div>
+  <h2>🎤 Interview Mode / Mode Entretien</h2>
+  <button class="btn" onclick="startRecognition()">✅ Start Interview / Démarrer l'entretien</button>
+  <button class="btn" onclick="stopRecognition()">🛑 End Interview / Terminer l'entretien</button>
 
-    <div class="mic" id="micAnim">🔴</div>
-  </div>
+  <div id="status">Ready to begin...</div>
+  <div id="result"></div>
 
   <script>
     let recognition;
-    let isListening = false;
+    let fullTranscript = "";
 
-    function startListening() {
+    function startRecognition() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
       if (!SpeechRecognition) {
-        document.getElementById("status").innerText = "❌ Reconnaissance vocale non supportée sur ce navigateur.";
+        document.getElementById("status").innerText = "❌ Speech recognition not supported in this browser.";
         return;
       }
 
       recognition = new SpeechRecognition();
-      recognition.lang = 'fr-FR';
-      recognition.interimResults = true;
+      recognition.lang = 'fr-FR'; // Set to 'en-US' for English interviews
+      recognition.interimResults = false;
+      recognition.continuous = true;
 
       recognition.onstart = () => {
-        isListening = true;
-        document.getElementById("status").innerText = "🎙️ En écoute...";
-        document.getElementById("micAnim").style.display = "inline-block";
+        document.getElementById("status").innerText = "🎙️ Listening... / En écoute...";
       };
 
       recognition.onresult = (event) => {
-        let transcript = '';
-        for (let i = 0; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript + ' ';
-        }
-        document.getElementById("transcript").innerText = transcript.trim();
+        const text = Array.from(event.results)
+          .map(result => result[0].transcript)
+          .join(' ');
+
+        fullTranscript += " " + text;
+        document.getElementById("result").innerText = fullTranscript.trim();
+        window.parent.postMessage(fullTranscript.trim(), "*");
       };
 
-      recognition.onerror = (event) => {
-        document.getElementById("status").innerText = `❌ Erreur : ${event.error}`;
-        stopListening();
+      recognition.onerror = (e) => {
+        document.getElementById("status").innerText = `❌ Erreur : ${e.error}`;
       };
 
       recognition.onend = () => {
-        isListening = false;
-        document.getElementById("status").innerText = "🛑 Enregistrement terminé.";
-        document.getElementById("micAnim").style.display = "none";
+        document.getElementById("status").innerText = "⏸️ Paused... Click 'Start Interview' to resume.";
       };
 
       recognition.start();
     }
 
-    function stopListening() {
-      if (isListening && recognition) {
+    function stopRecognition() {
+      if (recognition) {
         recognition.stop();
+        document.getElementById("status").innerText = "🛑 Interview ended / Entretien terminé.";
+        window.parent.postMessage(fullTranscript.trim(), "*"); // Send final transcript
       }
     }
   </script>
