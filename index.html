@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>TrueCalling Interview</title>
+  <title>Entretien TrueCalling</title>
   <style>
     body {
       font-family: Helvetica, sans-serif;
@@ -49,11 +49,11 @@
 </head>
 <body>
 
-  <h2>🎤 Interview Mode / Mode Entretien</h2>
-  <button class="btn" onclick="startRecognition()">✅ Start Interview / Démarrer l'entretien</button>
-  <button class="btn" onclick="stopRecognition()">🛑 End Interview / Terminer l'entretien</button>
+  <h2>🎤 Entretien vocal TrueCalling</h2>
+  <button class="btn" onclick="startRecognition()">✅ Démarrer l'entretien</button>
+  <button class="btn" onclick="stopRecognition()">🛑 Terminer l'entretien</button>
 
-  <div id="status">Ready to begin...</div>
+  <div id="status">Prêt à démarrer...</div>
   <div id="result"></div>
 
   <script>
@@ -63,17 +63,17 @@
     function startRecognition() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) {
-        document.getElementById("status").innerText = "❌ Speech recognition not supported in this browser.";
+        document.getElementById("status").innerText = "❌ Reconnaissance vocale non supportée par ce navigateur.";
         return;
       }
 
       recognition = new SpeechRecognition();
-      recognition.lang = 'fr-FR'; // Set to 'en-US' for English interviews
+      recognition.lang = 'fr-FR';
       recognition.interimResults = false;
       recognition.continuous = true;
 
       recognition.onstart = () => {
-        document.getElementById("status").innerText = "🎙️ Listening... / En écoute...";
+        document.getElementById("status").innerText = "🎙️ En écoute... (appuyez sur Terminer pour arrêter)";
       };
 
       recognition.onresult = (event) => {
@@ -87,21 +87,31 @@
       };
 
       recognition.onerror = (e) => {
-        document.getElementById("status").innerText = `❌ Erreur : ${e.error}`;
+        console.error("Erreur:", e.error);
+        if (e.error === 'not-allowed') {
+          document.getElementById("status").innerText = "❌ Micro désactivé ou non autorisé.";
+        }
       };
 
       recognition.onend = () => {
-        document.getElementById("status").innerText = "⏸️ Paused... Click 'Start Interview' to resume.";
+        // Restart automatically unless the user explicitly stopped
+        if (!manuallyStopped) {
+          recognition.start();
+        }
       };
 
+      manuallyStopped = false;
       recognition.start();
     }
 
+    let manuallyStopped = false;
+
     function stopRecognition() {
+      manuallyStopped = true;
       if (recognition) {
         recognition.stop();
-        document.getElementById("status").innerText = "🛑 Interview ended / Entretien terminé.";
-        window.parent.postMessage(fullTranscript.trim(), "*"); // Send final transcript
+        document.getElementById("status").innerText = "🛑 Entretien terminé.";
+        window.parent.postMessage(fullTranscript.trim(), "*");
       }
     }
   </script>
