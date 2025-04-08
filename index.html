@@ -1,110 +1,133 @@
-
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>🎤 Enregistrement vocal / Voice Recorder</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TrueCalling Voice to Text</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <style>
     body {
       font-family: 'Poppins', sans-serif;
-      text-align: center;
-      padding: 40px;
       background-color: #fff;
-      color: #333;
+      color: #222;
+      margin: 0;
+      padding: 40px 20px;
+      text-align: center;
     }
-    .button {
+    h1 {
+      font-size: 22px;
+      color: #e6007e;
+    }
+    .controls {
+      margin-top: 30px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      margin: 5px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    #startBtn {
       background-color: #e6007e;
       color: white;
-      border: none;
-      border-radius: 10px;
-      padding: 12px 24px;
-      font-size: 16px;
-      margin: 10px;
-      cursor: pointer;
     }
-    .button:hover {
-      background-color: #c5006c;
-    }
-    #status {
-      margin-top: 20px;
-      font-size: 16px;
-      color: #666;
+    #stopBtn {
+      background-color: #ddd;
+      color: #333;
     }
     #spokenText {
       margin-top: 30px;
-      padding: 20px;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      min-height: 100px;
       font-size: 16px;
-      background-color: #fafafa;
-    }
-    .subtitle {
-      font-weight: 600;
-      margin-bottom: 10px;
+      line-height: 1.6;
+      background-color: #f9f9f9;
+      padding: 15px;
+      border-radius: 10px;
+      max-width: 700px;
+      margin-left: auto;
+      margin-right: auto;
+      min-height: 100px;
+      white-space: pre-wrap;
     }
   </style>
 </head>
 <body>
-  <h1>🎙️ Voice Interview / Entretien vocal</h1>
-  <p class="subtitle">Click to begin speaking, then end when done.</p>
-
-  <button class="button" onclick="startRecording()">🔴 Start / Démarrer</button>
-  <button class="button" onclick="stopRecording()">⏹ Stop / Arrêter</button>
-
-  <div id="status">Ready / Prêt à l'emploi</div>
-
-  <div id="spokenText"></div>
+  <h1 id="title">🎤 Welcome to TrueCalling Interview</h1>
+  <div class="controls">
+    <button id="startBtn">Start Recording</button>
+    <button id="stopBtn">End Interview</button>
+  </div>
+  <div id="spokenText">🗣️ Transcription will appear here...</div>
 
   <script>
-    let recognition;
-    let finalTranscript = "";
-
-    function startRecording() {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) {
-        document.getElementById("status").innerText = "❌ Speech recognition non supporté.";
-        return;
+    const LANG = navigator.language.startsWith('fr') ? 'fr' : 'en';
+    const textMap = {
+      en: {
+        title: "🎤 Welcome to TrueCalling Interview",
+        start: "Start Recording",
+        stop: "End Interview",
+        placeholder: "🗣️ Transcription will appear here..."
+      },
+      fr: {
+        title: "🎤 Bienvenue à l'entretien TrueCalling",
+        start: "Démarrer l'enregistrement",
+        stop: "Terminer l'entretien",
+        placeholder: "🗣️ La transcription apparaîtra ici..."
       }
+    };
 
+    document.getElementById('title').innerText = textMap[LANG].title;
+    document.getElementById('startBtn').innerText = textMap[LANG].start;
+    document.getElementById('stopBtn').innerText = textMap[LANG].stop;
+    document.getElementById('spokenText').innerText = textMap[LANG].placeholder;
+
+    const spokenTextEl = document.getElementById("spokenText");
+    const startBtn = document.getElementById("startBtn");
+    const stopBtn = document.getElementById("stopBtn");
+
+    let recognition;
+    let fullTranscript = "";
+
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       recognition = new SpeechRecognition();
-      recognition.lang = navigator.language.startsWith("fr") ? "fr-FR" : "en-US";
-      recognition.interimResults = true;
+      recognition.lang = LANG === 'fr' ? 'fr-FR' : 'en-US';
+      recognition.interimResults = false;
       recognition.continuous = true;
 
-      recognition.onstart = () => {
-        document.getElementById("status").innerText = "🎤 Listening... / En cours d'enregistrement...";
-      };
-
       recognition.onresult = (event) => {
-        let interimTranscript = "";
+        let transcript = '';
         for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalTranscript += transcript + " ";
-          } else {
-            interimTranscript += transcript;
-          }
+          transcript += event.results[i][0].transcript + " ";
         }
-        document.getElementById("spokenText").innerText = finalTranscript + interimTranscript;
-        window.parent.postMessage(finalTranscript + interimTranscript, "*");
+        fullTranscript += transcript;
+        spokenTextEl.innerText = fullTranscript.trim();
+        window.parent.postMessage(fullTranscript.trim(), '*');
       };
 
       recognition.onerror = (event) => {
-        document.getElementById("status").innerText = `❌ Erreur : ${event.error}`;
+        console.error("❌ Recognition error:", event.error);
       };
-
-      recognition.start();
+    } else {
+      alert("Speech recognition is not supported in this browser.");
     }
 
-    function stopRecording() {
+    startBtn.onclick = () => {
+      if (recognition) {
+        fullTranscript = "";
+        spokenTextEl.innerText = textMap[LANG].placeholder;
+        recognition.start();
+      }
+    };
+
+    stopBtn.onclick = () => {
       if (recognition) {
         recognition.stop();
-        document.getElementById("status").innerText = "✅ Enregistrement terminé / Recording finished.";
       }
-    }
+    };
   </script>
 </body>
 </html>
-
