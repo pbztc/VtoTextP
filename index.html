@@ -1,133 +1,77 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TrueCalling Voice to Text</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <title>Voice Transcriber</title>
   <style>
     body {
       font-family: 'Poppins', sans-serif;
-      background-color: #fff;
-      color: #222;
-      margin: 0;
-      padding: 40px 20px;
-      text-align: center;
-    }
-    h1 {
-      font-size: 22px;
-      color: #e6007e;
-    }
-    .controls {
-      margin-top: 30px;
+      padding: 20px;
+      color: #333;
+      background: #fff;
     }
     button {
-      padding: 10px 20px;
-      font-size: 16px;
-      font-weight: 600;
-      border: none;
-      border-radius: 8px;
-      margin: 5px;
-      cursor: pointer;
-      transition: background 0.3s;
-    }
-    #startBtn {
-      background-color: #e6007e;
+      background: #e6007e;
       color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 16px;
+      font-size: 14px;
+      cursor: pointer;
+      margin-right: 10px;
     }
-    #stopBtn {
-      background-color: #ddd;
-      color: #333;
-    }
-    #spokenText {
-      margin-top: 30px;
+    #output {
+      margin-top: 20px;
       font-size: 16px;
-      line-height: 1.6;
-      background-color: #f9f9f9;
-      padding: 15px;
-      border-radius: 10px;
-      max-width: 700px;
-      margin-left: auto;
-      margin-right: auto;
-      min-height: 100px;
+      color: #e6007e;
       white-space: pre-wrap;
     }
   </style>
 </head>
 <body>
-  <h1 id="title">🎤 Welcome to TrueCalling Interview</h1>
-  <div class="controls">
-    <button id="startBtn">Start Recording</button>
-    <button id="stopBtn">End Interview</button>
-  </div>
-  <div id="spokenText">🗣️ Transcription will appear here...</div>
+  <button onclick="startRecognition()">▶️ Start</button>
+  <button onclick="stopRecognition()">⏹ Stop</button>
+  <div id="output">🎙️ En attente...</div>
 
   <script>
-    const LANG = navigator.language.startsWith('fr') ? 'fr' : 'en';
-    const textMap = {
-      en: {
-        title: "🎤 Welcome to TrueCalling Interview",
-        start: "Start Recording",
-        stop: "End Interview",
-        placeholder: "🗣️ Transcription will appear here..."
-      },
-      fr: {
-        title: "🎤 Bienvenue à l'entretien TrueCalling",
-        start: "Démarrer l'enregistrement",
-        stop: "Terminer l'entretien",
-        placeholder: "🗣️ La transcription apparaîtra ici..."
-      }
-    };
-
-    document.getElementById('title').innerText = textMap[LANG].title;
-    document.getElementById('startBtn').innerText = textMap[LANG].start;
-    document.getElementById('stopBtn').innerText = textMap[LANG].stop;
-    document.getElementById('spokenText').innerText = textMap[LANG].placeholder;
-
-    const spokenTextEl = document.getElementById("spokenText");
-    const startBtn = document.getElementById("startBtn");
-    const stopBtn = document.getElementById("stopBtn");
-
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     let recognition;
-    let fullTranscript = "";
+    let finalTranscript = "";
 
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
       recognition = new SpeechRecognition();
-      recognition.lang = LANG === 'fr' ? 'fr-FR' : 'en-US';
+      recognition.lang = 'fr-FR';
       recognition.interimResults = false;
       recognition.continuous = true;
 
       recognition.onresult = (event) => {
-        let transcript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript + " ";
-        }
-        fullTranscript += transcript;
-        spokenTextEl.innerText = fullTranscript.trim();
-        window.parent.postMessage(fullTranscript.trim(), '*');
+        const transcript = event.results[event.results.length - 1][0].transcript.trim();
+        finalTranscript += transcript + " ";
+        document.getElementById("output").innerText = finalTranscript;
+
+        // ✅ Post message to parent (Wix site)
+        window.parent.postMessage(
+          JSON.stringify({ type: "spokenText", data: finalTranscript }),
+          "*"
+        );
       };
 
-      recognition.onerror = (event) => {
-        console.error("❌ Recognition error:", event.error);
+      recognition.onerror = (e) => {
+        document.getElementById("output").innerText = `❌ Erreur : ${e.error}`;
       };
     } else {
-      alert("Speech recognition is not supported in this browser.");
+      document.getElementById("output").innerText = "❌ Reconnaissance vocale non supportée.";
     }
 
-    startBtn.onclick = () => {
-      if (recognition) {
-        fullTranscript = "";
-        spokenTextEl.innerText = textMap[LANG].placeholder;
-        recognition.start();
-      }
-    };
+    function startRecognition() {
+      finalTranscript = "";
+      recognition?.start();
+      document.getElementById("output").innerText = "🎤 Parlez maintenant...";
+    }
 
-    stopBtn.onclick = () => {
-      if (recognition) {
-        recognition.stop();
-      }
-    };
+    function stopRecognition() {
+      recognition?.stop();
+    }
   </script>
 </body>
 </html>
